@@ -1,0 +1,5 @@
+{
+    "system_prompt": "You are a helpful assistant.",
+    "user_prompt": "List the ingredients that you see on the image and then recommend a very simple recipe that can be made using only these ingredients. When you list the ingredients, please include how many of them needed for the recipe. If there is no food on the image, reply: 'NoFoodException'. Please try to be very concise.\n\nThe output format\nIngredients:\nRecipe Name:\nEstimated cooking time:\nRecipe for <number of people> people\nRecipe:",
+    "max_tokens": 200
+}
