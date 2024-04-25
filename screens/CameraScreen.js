@@ -66,6 +66,45 @@ const CameraScreen = () => {
   const handleAPIRequest = async (base64Data) => {
     setLoading(true);
 
+    const parseRecipe = (text) => {
+      const nameRegex = /Recipe Name:\s*(.+)/;
+      const timeRegex = /Estimated cooking time:\s*(.+)/;
+      const personsRegex = /Recipe for (\d+(?:-\d+)?)/; // Updated to handle ranges like "1-2"
+      const stepsRegex = /Recipe:\s*([\s\S]+)/;
+      const ingredientsRegex = /Ingredients:\s*([\s\S]*?)\n(?=\n|Recipe Name)/;
+
+      const nameMatch = text.match(nameRegex);
+      const timeMatch = text.match(timeRegex);
+      const personsMatch = text.match(personsRegex);
+      const stepsMatch = text.match(stepsRegex);
+      const ingredientsMatch = text.match(ingredientsRegex);
+
+      const name = nameMatch ? nameMatch[1].trim() : "";
+      const time = timeMatch ? timeMatch[1].trim() : "";
+      const persons = personsMatch ? personsMatch[1] : "1"; // Default to "1" if not specified
+      const rawSteps = stepsMatch ? stepsMatch[1].trim() : "";
+
+      const steps = rawSteps
+        .split("\n")
+        .filter((step) => step.trim() !== "")
+        .map((step) => step.replace(/^\d+\.\s*/, "").trim());
+
+      const ingredients = ingredientsMatch
+        ? ingredientsMatch[1]
+            .split("\n")
+            .filter((ingredient) => ingredient.trim() !== "")
+            .map((ingredient) => ingredient.replace(/^- /, "").trim())
+        : [];
+
+      return {
+        recipeName: name,
+        cookingTime: time,
+        servings: persons,
+        ingredients: ingredients,
+        steps: steps,
+      };
+    };
+
     const dataUrl = `data:image/jpeg;base64,${base64Data}`;
 
     const myHeaders = new Headers();
@@ -112,9 +151,10 @@ const CameraScreen = () => {
       console.log(result);
       const assistantResponse = result.choices[0].message.content;
       console.log(assistantResponse);
+      const recipe = parseRecipe(assistantResponse);
       navigation.navigate("Details", {
-        imageBase64: dataUrl,
-        text: assistantResponse,
+        image: dataUrl,
+        recipe: recipe,
       });
     } catch (error) {
       console.error(error);
