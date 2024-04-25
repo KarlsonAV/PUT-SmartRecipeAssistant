@@ -1,28 +1,28 @@
-// LogInScreen.js
+// SignUpScreen.js
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, ScrollView } from "react-native";
-import { signInWithEmailAndPassword } from "@firebase/auth";
-import { app, getAuth } from "../configs/firebase";
+import { createUserWithEmailAndPassword, getAuth } from "@firebase/auth";
+import { app } from "../configs/firebase";
 import { styles } from "../auth_styles";
 
-export const LogInScreen = ({ onAuthChange }) => {
+export const SignUpScreen = ({ onAuthChange }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const auth = getAuth(app);
 
-  const handleLogin = async () => {
+  const handleSignUp = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log("User signed in successfully!");
+      await createUserWithEmailAndPassword(auth, email, password);
+      console.log("User created successfully!");
     } catch (error) {
-      console.error("Login error:", error.message);
+      console.error("Signup error:", error.message);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.authContainer}>
-        <Text style={styles.title}>Sign In</Text>
+        <Text style={styles.title}>Sign Up</Text>
         <TextInput
           style={styles.input}
           value={email}
@@ -37,9 +37,9 @@ export const LogInScreen = ({ onAuthChange }) => {
           placeholder="Password"
           secureTextEntry
         />
-        <Button title="Sign In" onPress={handleLogin} color="#3498db" />
-        <Text style={styles.toggleText} onPress={() => onAuthChange(false)}>
-          Need an account? Sign Up
+        <Button title="Sign Up" onPress={handleSignUp} color="#3498db" />
+        <Text style={styles.toggleText} onPress={() => onAuthChange(true)}>
+          Already have an account? Sign In
         </Text>
       </View>
     </ScrollView>
