@@ -8,7 +8,6 @@ import { styles } from "../auth_styles";
 const UserScreen = () => {
   const auth = getAuth(app);
   const user = auth.currentUser;
-  console.log("UserId:", user.uid);
 
   const handleLogout = async () => {
     try {

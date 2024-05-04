@@ -12,12 +12,27 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { Camera } from "expo-camera";
+import uuid from "react-native-uuid";
 import { GPT_VISION_ENDPOINT, GPT_VISION_API_KEY } from "@env";
 import gpt_config from "../configs/gpt_vision.json";
+import { app, getAuth, db, storage } from "../configs/firebase";
+import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
+import { doc, setDoc } from "@firebase/firestore";
+
+import { decode, encode } from "base-64";
+
+if (!global.btoa) {
+  global.btoa = encode;
+}
+
+if (!global.atob) {
+  global.atob = decode;
+}
 
 const CameraScreen = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
+  const auth = getAuth(app);
 
   const openCamera = async () => {
     // Requesting camera permissions
@@ -32,12 +47,12 @@ const CameraScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
       base64: true,
     });
 
     if (!result.cancelled) {
-      handleAPIRequest(result.assets[0].base64);
+      handleAPIRequest(result.assets[0]);
     }
   };
 
@@ -54,19 +69,100 @@ const CameraScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.7,
       base64: true,
     });
 
     if (!result.cancelled) {
-      handleAPIRequest(result.assets[0].base64);
+      handleAPIRequest(result.assets[0]);
     }
   };
 
-  const handleAPIRequest = async (base64Data) => {
+  const handleAPIRequest = async (image) => {
     setLoading(true);
 
-    const dataUrl = `data:image/jpeg;base64,${base64Data}`;
+    const base64Data = image.base64;
+    const imageURI = image.uri;
+
+    const parseRecipe = (text) => {
+      const nameRegex = /Recipe Name:\s*(.+)/;
+      const timeRegex = /Estimated cooking time:\s*(.+)/;
+      const personsRegex = /Recipe for (\d+(?:-\d+)?)/; // Updated to handle ranges like "1-2"
+      const stepsRegex = /Recipe:\s*([\s\S]+)/;
+      const ingredientsRegex = /Ingredients:\s*([\s\S]*?)\n(?=\n|Recipe Name)/;
+
+      const nameMatch = text.match(nameRegex);
+      const timeMatch = text.match(timeRegex);
+      const personsMatch = text.match(personsRegex);
+      const stepsMatch = text.match(stepsRegex);
+      const ingredientsMatch = text.match(ingredientsRegex);
+
+      const name = nameMatch ? nameMatch[1].trim() : "";
+      const time = timeMatch ? timeMatch[1].trim() : "";
+      const persons = personsMatch ? personsMatch[1] : "1"; // Default to "1" if not specified
+      const rawSteps = stepsMatch ? stepsMatch[1].trim() : "";
+
+      const steps = rawSteps
+        .split("\n")
+        .filter((step) => step.trim() !== "")
+        .map((step) => step.replace(/^\d+\.\s*/, "").trim());
+
+      const ingredients = ingredientsMatch
+        ? ingredientsMatch[1]
+            .split("\n")
+            .filter((ingredient) => ingredient.trim() !== "")
+            .map((ingredient) => ingredient.replace(/^- /, "").trim())
+        : [];
+
+      return {
+        recipeName: name,
+        cookingTime: time,
+        servings: persons,
+        ingredients: ingredients,
+        steps: steps,
+      };
+    };
+
+    const uploadImageToStorage = async () => {
+      const response = await fetch(imageURI);
+      const blob = await response.blob();
+      const fileName = `${Date.now()}.jpg`;
+      const storageRef = ref(storage, `images/${fileName}`);
+
+      try {
+        await uploadBytesResumable(storageRef, blob);
+      } catch (e) {
+        console.error(e);
+        return "";
+      }
+
+      const downloadURL = await getDownloadURL(storageRef);
+
+      return downloadURL;
+    };
+
+    const addRecipeToDB = async (userID, imageURL, recipe) => {
+      const recipeDoc = {
+        userID: userID,
+        imageURL: imageURL,
+        recipeName: recipe.recipeName,
+        cookingTime: recipe.cookingTime,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        servings: recipe.servings,
+        createdAt: new Date(),
+      };
+
+      const recipeID = uuid.v4();
+
+      try {
+        await setDoc(doc(db, "recipes", recipeID), recipeDoc);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    const dataURL = `data:image/jpeg;base64,${base64Data}`;
 
     const myHeaders = new Headers();
 
@@ -90,7 +186,7 @@ const CameraScreen = () => {
             {
               type: "image_url",
               image_url: {
-                url: dataUrl,
+                url: dataURL,
               },
             },
           ],
@@ -106,15 +202,32 @@ const CameraScreen = () => {
     };
 
     try {
-      console.log("Making request...");
+      console.log("Making request to Azure OpenAI...");
       const response = await fetch(GPT_VISION_ENDPOINT, requestOptions);
       const result = await response.json();
-      console.log(result);
+
+      console.log("Response received from Azure OpenAI");
+
       const assistantResponse = result.choices[0].message.content;
-      console.log(assistantResponse);
+
+      if (assistantResponse.includes("NoFoodException")) {
+        alert("No food detected in the image. Please try again.");
+        return;
+      }
+
+      const recipe = parseRecipe(assistantResponse);
+
+      console.log("Uploading image to storage...");
+      const imageDownloadURL = await uploadImageToStorage();
+
+      console.log("Adding recipe to database...");
+      await addRecipeToDB(auth.currentUser.uid, imageDownloadURL, recipe);
+
+      console.log("Recipe added to database");
+
       navigation.navigate("Details", {
-        imageBase64: dataUrl,
-        text: assistantResponse,
+        image: dataURL,
+        recipe: recipe,
       });
     } catch (error) {
       console.error(error);
