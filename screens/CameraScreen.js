@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Image,
@@ -6,7 +6,10 @@ import {
   View,
   Text,
   SafeAreaView,
+  ImageBackground,
+  TouchableOpacity,
   ActivityIndicator,
+  Animated,
   Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -33,6 +36,33 @@ const CameraScreen = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const auth = getAuth(app);
+
+  const [hatYPosition] = useState(new Animated.Value(0)); // Initial position for the chef's hat
+
+  useEffect(() => {
+    const startBouncing = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(hatYPosition, {
+            toValue: -30, // Move up
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(hatYPosition, {
+            toValue: 0, // Move back down
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+
+    if (loading) {
+      startBouncing();
+    }
+
+    return () => hatYPosition.setValue(0); // Reset position on unmount
+  }, [loading]);
 
   const openCamera = async () => {
     // Requesting camera permissions
@@ -238,8 +268,20 @@ const CameraScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Button title="Take a picture" onPress={openCamera} />
-      <Button title="Choose from gallery" onPress={openGallery} />
+      <ImageBackground
+        source={require("../assets/images/background_assistant.png")}
+        style={styles.backgroundImage}
+      >
+        <Text style={styles.titleText}></Text>
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity style={styles.button} onPress={openCamera}>
+            <Text style={styles.buttonText}>Take a picture</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={openGallery}>
+            <Text style={styles.buttonText}>Choose from gallery</Text>
+          </TouchableOpacity>
+        </View>
+      </ImageBackground>
       <Modal
         animationType="fade"
         transparent={true}
@@ -248,8 +290,21 @@ const CameraScreen = () => {
           setLoading(false);
         }}
       >
-        <View style={styles.fullScreenOverlay}>
-          <ActivityIndicator size="large" color="#0000ff" />
+        <View
+          style={[
+            styles.fullScreenOverlay,
+            { backgroundColor: loading ? "#FFFFFF" : "rgba(0, 0, 0, 0.5)" },
+          ]}
+        >
+          <Animated.Image
+            source={require("../assets/images/chef_hat.png")}
+            style={{
+              width: 100,
+              height: 100,
+              transform: [{ translateY: hatYPosition }],
+            }}
+          />
+          <Text style={styles.loadingText}>Preparing a recipe...</Text>
         </View>
       </Modal>
     </SafeAreaView>
@@ -259,14 +314,59 @@ const CameraScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+  },
+  backgroundImage: {
+    flex: 1,
+    justifyContent: "space-between",
+    resizeMode: "cover",
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  bottomContainer: {
     alignItems: "center",
+    marginBottom: 60,
+  },
+  button: {
+    backgroundColor: "#FE8C45",
+    padding: 15,
+    borderRadius: 20,
+    marginVertical: 20,
+    width: 250,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  iconBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    padding: 10,
+  },
+  iconButton: {
+    flex: 1,
+    alignItems: "center",
+  },
+  iconText: {
+    fontSize: 24,
   },
   fullScreenOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent background
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "black",
   },
 });
 

@@ -1,8 +1,27 @@
-import React from "react";
-import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
+import React, { useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  ImageBackground,
+} from "react-native";
 
-const DetailsScreen = ({ route }) => {
-  const { image, recipe } = route.params;
+const DetailsScreen = ({ route, navigation }) => {
+  const { recipe } = route.params;
+  let { image } = route.params;
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // This will be called when the screen is blurred
+        image = null; // Clear the image URI
+      };
+    }, [])
+  );
 
   // Function to format ingredients with bullet points
   const renderIngredients = (ingredients) => {
@@ -23,20 +42,27 @@ const DetailsScreen = ({ route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Image source={{ uri: image }} style={styles.image} />
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>{recipe.recipeName}</Text>
-          <Text style={styles.details}>Cooking Time: {recipe.cookingTime}</Text>
-          <Text style={styles.details}>Servings for: {recipe.servings}</Text>
-          <Text style={styles.sectionTitle}>Ingredients</Text>
-          {renderIngredients(recipe.ingredients)}
-          <Text style={styles.sectionTitle}>Steps</Text>
-          {renderSteps(recipe.steps)}
-        </View>
-      </ScrollView>
-    </View>
+      <ImageBackground
+        source={require("../assets/images/background.png")}
+        style={styles.backgroundImage}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.infoContainer}>
+            <Text style={styles.title}>{recipe.recipeName}</Text>
+            <Text style={styles.details}>
+              Cooking Time: {recipe.cookingTime}
+            </Text>
+            <Text style={styles.details}>Servings for: {recipe.servings}</Text>
+            <Text style={styles.sectionTitle}>Ingredients</Text>
+            {renderIngredients(recipe.ingredients)}
+            <Text style={styles.sectionTitle}>Steps</Text>
+            {renderSteps(recipe.steps)}
+          </View>
+        </ScrollView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
@@ -47,6 +73,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover", // or 'stretch'
   },
   image: {
     width: "100%",
