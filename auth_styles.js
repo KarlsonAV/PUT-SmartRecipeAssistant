@@ -1,47 +1,49 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: "cover",
+  },
   container: {
+    flex: 1,
+  },
+  scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#f0f0f0",
   },
   authContainer: {
-    width: "80%",
-    maxWidth: 400,
+    width: "90%", // Increased the width
+    maxWidth: 500, // Increased the max width
     backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 8,
-    elevation: 3,
+    padding: 32, // Increased padding for a more spacious look
+    borderRadius: 16, // Increased border radius for rounded corners
+    elevation: 5,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
+    fontSize: 36, // Increased font size
+    marginBottom: 24, // Increased margin bottom for more space
     textAlign: "center",
+    color: "#f97316",
+    fontWeight: "bold", // Made the title bold
   },
   input: {
-    height: 40,
+    height: 50, // Increased height for larger input fields
     borderColor: "#ddd",
     borderWidth: 1,
-    marginBottom: 16,
-    padding: 8,
-    borderRadius: 4,
+    marginBottom: 24, // Increased margin bottom for more space between inputs
+    padding: 12, // Increased padding for larger input fields
+    borderRadius: 8, // Increased border radius for rounded corners
+    fontSize: 18, // Increased font size for better readability
   },
   buttonContainer: {
-    marginBottom: 16,
+    marginBottom: 24, // Increased margin bottom for more space
   },
   toggleText: {
-    color: "#3498db",
+    color: "#f97316",
     textAlign: "center",
-  },
-  bottomContainer: {
-    marginTop: 20,
-  },
-  emailText: {
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: 20,
+    fontSize: 16, // Increased font size for better readability
   },
 });

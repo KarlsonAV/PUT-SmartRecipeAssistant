@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -12,15 +12,15 @@ import {
 
 const DetailsScreen = ({ route, navigation }) => {
   const { recipe } = route.params;
-  let { image } = route.params;
+  const [image, setImage] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
+      setImage(route.params.image); // Reset image URI when the screen is focused
       return () => {
-        // This will be called when the screen is blurred
-        image = null; // Clear the image URI
+        setImage(null); // Clear the image URI when the screen is blurred
       };
-    }, [])
+    }, [route.params.image]) // Dependency on the image URI from route params
   );
 
   // Function to format ingredients with bullet points
@@ -43,9 +43,9 @@ const DetailsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Image source={{ uri: image }} style={styles.image} />
+      {image && <Image source={{ uri: image }} style={styles.image} />}
       <ImageBackground
-        source={require("../assets/images/background.png")}
+        source={require("../assets/images/background_details.png")}
         style={styles.backgroundImage}
       >
         <ScrollView style={styles.scrollView}>
